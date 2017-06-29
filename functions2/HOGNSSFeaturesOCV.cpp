@@ -6,11 +6,11 @@
 #include <fstream>
 #include <sstream>
 #include <map>
-#include "Imagen.h"
-// #include "fwdfastspatialnss/Imagen.h"
+#include "fwdfastspatialnss/Imagen.h"
 
 using namespace cv;
 
+// global variable for the input image patch
 static Image *image = NULL;
 
 //////////////////////////////////////////////////////////////////////////////
@@ -26,6 +26,8 @@ void checkInputs(int nrhs, const mxArray *prhs[])
 
 //////////////////////////////////////////////////////////////////////////////
 // Get MEX function inputs
+// Copy values from the input parameters object to C++ variables
+// Parameters: HOG input parameters by reference, mex object type with parameters
 //////////////////////////////////////////////////////////////////////////////
 void getParams(Size &winSize, Size &cellSize, Size &blockSize, Size &blockStride, const mxArray* mxParams)
 {
@@ -84,7 +86,7 @@ void constructObject(const mxArray *prhs[])
          blockSize,
          blockStride;
 
-    // second input must be struct
+    // second input must be struct with params
     if (mxIsStruct(prhs[1]))
         getParams(winSize, cellSize, blockSize, blockStride, prhs[1]);
 
@@ -107,10 +109,8 @@ void constructObject(const mxArray *prhs[])
 //////////////////////////////////////////////////////////////////////////////
 void checkComputeInputs(int nrhs, const mxArray *prhs[])
 {    
-    const int * imDims;
             
     // Check input image dimensions
-    imDims = mxGetDimensions(prhs[1]);
     
     if (mxGetNumberOfDimensions(prhs[1])>2)
     {
@@ -146,6 +146,11 @@ mxArray * getMexArray (const vector<float> &v)
 
 //////////////////////////////////////////////////////////////////////////////
 // Compute features
+// Parameters:
+//  nlhs: Number of expected output mxArrays (1: the feature vector)
+//  plhs: Array of pointers to feature vector
+//  nrhs: Number of input mxArrays (4: 'compute', img, NSS, Cs)
+//  prhs: Array of pointers to the input mxArrays.
 //////////////////////////////////////////////////////////////////////////////
 void computeFeatures(int nlhs, mxArray *plhs[], const mxArray *prhs[])
 {
@@ -157,11 +162,10 @@ void computeFeatures(int nlhs, mxArray *plhs[], const mxArray *prhs[])
         cv::Ptr<cv::Mat> imgCV;
         bool attachNSS;
         float Cs;
-        //cv::Mat myImg;
         // Calculate resized image size (for computing over cropped image)
         cv::Mat resizedImg(image->winWidth, image->winHeight, CV_8UC1);
         Size imSize;
-        // Create output vector
+        // output feature vector
         vector<float> descriptorVector;
         
         int HOGfeaturesize, BRISQUEfeaturesize;
@@ -170,31 +174,40 @@ void computeFeatures(int nlhs, mxArray *plhs[], const mxArray *prhs[])
         imgCV = ocvMxArrayToImage_uint8(prhs[1], true);
         attachNSS = (bool)mxGetScalar(prhs[2]);
         Cs = (float)mxGetScalar(prhs[3]);
-        //myImg = *imgCV;
-        // Resize Image
+        
+        // Resize Image to legal size
         cv::resize(*imgCV, resizedImg, cv::Size(image->winWidth, image->winHeight));
         
         // check image data
         image->CheckImage(resizedImg);
-        // prepare for feature extraction:
+        
         // compute MSCN and paired product coefficients
-        image->PrepForFastBrisque();
+        if( attachNSS)
+            image->PrepForFastBrisque();
+        
         // extract features
         bool validcheck = image->ComputeScaledFeatures(0,0,image->winWidth,image->winHeight, Cs, descriptorVector, attachNSS); //second valid check
         
         if( !validcheck)
              mexErrMsgTxt("Error while calculating features.");
-        //HOGfeaturesize = image->GetHOGlength();
-        //BRISQUEfeaturesize = image->GetBRISQUElength();
         
         // Return features in MexArray
         plhs[0] = getMexArray(descriptorVector);
     }
 }
 
+//////////////////////////////////////////////////////////////////////////////
+// mexFunction
+// Parameters:
+//  nlhs: Number of expected output mxArrays
+//  plhs: Array of pointers to the expected output mxArrays
+//  nrhs: Number of input mxArrays
+//  prhs: Array of pointers to the input mxArrays.
+//////////////////////////////////////////////////////////////////////////////
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {        
-    checkInputs(nrhs, prhs);
+    checkInputs(nrhs, prhs); // Check correct number of inputs
+    // string with action for contruct obj, compute features, or destroy obj
     const char *str = mxIsChar(prhs[0]) ? mxArrayToString(prhs[0]) : NULL;
 
     if (str != NULL) 
