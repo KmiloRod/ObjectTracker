@@ -39,8 +39,8 @@ void Image::CreateMscnMaps()
 		cv::sqrt(sigma, sigma);
                          
 		if(verbose) printf("Adding epsilon\n");
-//		add(sigma, Scalar(1.0/255), sigma);
-add(sigma, Scalar(1.0), sigma);
+		//add(sigma, Scalar(1.0/255), sigma);
+		add(sigma, Scalar(1.0), sigma);
 		subtract(imdist_scaled, mu, mscn[itr_scale-1]);
                                     
 		divide(mscn[itr_scale-1], sigma, mscn[itr_scale-1]);
@@ -53,7 +53,7 @@ add(sigma, Scalar(1.0), sigma);
 	}
 	orig_bw.release();
 }
-void Image::CreateIntegralImages()
+void Image::CreateIntegralImages() //problem with cv::integral
 {
 	int count=-1;
 	for (int itr_scale = 0; itr_scale<2; itr_scale++)
@@ -62,27 +62,27 @@ void Image::CreateIntegralImages()
 		if(verbose) printf("scale %d.. \n", itr_scale);
                 
 		if(verbose) printf("Running sum computed.. \n");
-		cv::threshold(mscn[itr_scale], numpos[count], 0 , 1, THRESH_BINARY); //only positive elements
+		cv::threshold(mscn[itr_scale], poselem[count], 0 , 1, THRESH_BINARY); //only positive elements
 		if(verbose) printf("Positive elements identified.. \n");
-		cv::threshold(mscn[itr_scale], numneg[count], 0 , 1, THRESH_BINARY_INV); //only positive elements
+		cv::threshold(mscn[itr_scale], negelem[count], 0 , 1, THRESH_BINARY_INV); //only positive elements
 		if(verbose) printf("Negative elements identified.. \n");
-		cv::integral(numpos[count], numpos[count]); //integral image of positive elements
+		cv::integral(poselem[count], numpos[count]); //integral image of positive elements
 		if(verbose) printf("Positive elements counted.. \n");
-		cv::integral(numneg[count], numneg[count]); //integral image of positive elements
+		cv::integral(negelem[count], numneg[count]); //integral image of negative elements
 		if(verbose) printf("Negative elements counted.. \n");
 
-		cv::threshold(mscn[itr_scale], leftsqsum[count], 0, 1, THRESH_TOZERO_INV);
-		multiply(leftsqsum[count], leftsqsum[count], leftsqsum[count]);		
-		cv::integral(leftsqsum[count], leftsqsum[count]);
+		cv::threshold(mscn[itr_scale], leftsqthresh[count], 0, 1, THRESH_TOZERO_INV);
+		multiply(leftsqthresh[count], leftsqthresh[count], leftsqthresh[count]);		
+		cv::integral(leftsqthresh[count], leftsqsum[count]);
 		if(verbose) printf("Negative sqsum computed.. \n");
                 
-		cv::threshold(mscn[itr_scale], rightsqsum[count], 0, 1, THRESH_TOZERO);
-		multiply(rightsqsum[count], rightsqsum[count], rightsqsum[count]);		
-		cv::integral(rightsqsum[count], rightsqsum[count]);
+		cv::threshold(mscn[itr_scale], rightsqthresh[count], 0, 1, THRESH_TOZERO);
+		multiply(rightsqthresh[count], rightsqthresh[count], rightsqthresh[count]);		
+		cv::integral(rightsqthresh[count], rightsqsum[count]);
 		if(verbose) printf("Positive sqsum computed.. \n");
                 
-		abssum[count]=abs(mscn[itr_scale]);
-		cv::integral(abssum[count], abssum[count]);
+		absmscn[count]=abs(mscn[itr_scale]);
+		cv::integral(absmscn[count], abssum[count]);
 		if(verbose) printf("Running absolute sum computed.. \n");
                 		
 		for(int itr_shift = 0; itr_shift<4; itr_shift++)
@@ -90,27 +90,27 @@ void Image::CreateIntegralImages()
 			count++;
 
 			if(verbose) printf("Running sum computed.. \n");
-			cv::threshold(pairedproducts[itr_scale][itr_shift], numpos[count], 0 , 1, CV_THRESH_BINARY); //only positive elements
+			cv::threshold(pairedproducts[itr_scale][itr_shift], poselem[count], 0 , 1, CV_THRESH_BINARY); //only positive elements
 			if(verbose) printf("Positive elements identified.. \n");
-			cv::threshold(pairedproducts[itr_scale][itr_shift], numneg[count], 0 , 1, CV_THRESH_BINARY_INV); //only positive elements
+			cv::threshold(pairedproducts[itr_scale][itr_shift], negelem[count], 0 , 1, CV_THRESH_BINARY_INV); //only positive elements
 			if(verbose) printf("Negative elements identified.. \n");
-			cv::integral(numpos[count], numpos[count]); //integral image of positive elements
+			cv::integral(poselem[count], numpos[count]); //integral image of positive elements
 			if(verbose) printf("Positive elements counted.. \n");
-			cv::integral(numneg[count], numneg[count]); //integral image of positive elements
+			cv::integral(negelem[count], numneg[count]); //integral image of positive elements
 			if(verbose) printf("Negative elements counted.. \n");
 
-			cv::threshold(pairedproducts[itr_scale][itr_shift], leftsqsum[count], 0, 1, CV_THRESH_TOZERO_INV);
-			multiply(leftsqsum[count], leftsqsum[count], leftsqsum[count]);
-			cv::integral(leftsqsum[count], leftsqsum[count]);
+			cv::threshold(pairedproducts[itr_scale][itr_shift], leftsqthresh[count], 0, 1, CV_THRESH_TOZERO_INV);
+			multiply(leftsqthresh[count], leftsqthresh[count], leftsqthresh[count]);
+			cv::integral(leftsqthresh[count], leftsqsum[count]);
 			if(verbose) printf("Negative sqsum computed.. \n");
 
-			cv::threshold(pairedproducts[itr_scale][itr_shift], rightsqsum[count], 0, 1, CV_THRESH_TOZERO);
-			multiply(rightsqsum[count], rightsqsum[count], rightsqsum[count]);
-			cv::integral(rightsqsum[count], rightsqsum[count]);
+			cv::threshold(pairedproducts[itr_scale][itr_shift], rightsqthresh[count], 0, 1, CV_THRESH_TOZERO);
+			multiply(rightsqthresh[count], rightsqthresh[count], rightsqthresh[count]);
+			cv::integral(rightsqthresh[count], rightsqsum[count]);
 			if(verbose) printf("Positive sqsum computed.. \n");
 		
-			abssum[count]=abs(pairedproducts[itr_scale][itr_shift]);
-			cv::integral(abssum[count], abssum[count]);
+			absmscn[count]=abs(pairedproducts[itr_scale][itr_shift]);
+			cv::integral(absmscn[count], abssum[count]);
 			if(verbose) printf("Running absolute sum computed.. \n");
 		}
 	}
@@ -398,3 +398,4 @@ double Image::gamma(double x){
     }*/
     return ga;
 }
+

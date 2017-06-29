@@ -15,7 +15,7 @@ using namespace std;
 #define M_PI           3.14159265358979323846
 #define ELEM(type,start,step,size,xpos,ypos) (*((type*)(start+step*(ypos)+(xpos)*size)))
 
-const bool verbose = 0;
+const bool verbose = 1;
 //const int FACEWIDTH = 10;
 //const int FACEHEIGHT = 10;
 
@@ -25,7 +25,7 @@ class Image
     Mat img;
     vector<float> DescriptorVector;
     HOGDescriptor hog;
-    Mat mscn[2], pairedproducts[2][4], numneg[10], numpos[10], leftsqsum[10], rightsqsum[10], abssum[10];
+    Mat mscn[2], pairedproducts[2][4], negelem[10], numneg[10], poselem[10], numpos[10], leftsqthresh[10], leftsqsum[10], rightsqthresh[10], rightsqsum[10], absmscn[10], abssum[10];
     int HOGlength, BRISQUElength;
     bool ReadyForFastBrisque;
 
@@ -67,7 +67,7 @@ class Image
     //manipulate functions
     bool ComputeFeatures(int x, int y, int w, int h, vector<float>& descriptorVector, bool AttachBrisque=1){
 		ComputeHOG(w,h,descriptorVector);
-		if(AttachBrisque){
+		if(AttachBrisque){ //attach nss
 			if(verbose) printf("BRISQUE.. \n");
 			if(!ReadyForFastBrisque) {throw "Image not ready for Fast Brisque";}
 			if(!FastBrisque(0, 0, w, h, descriptorVector)) return false;
@@ -101,3 +101,4 @@ class Image
     bool FastBrisque(int x, int y, int w, int h, vector<float>& descriptorVector);
 };
 #endif
+
