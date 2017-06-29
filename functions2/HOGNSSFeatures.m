@@ -4,13 +4,16 @@
    %   creates an object with properties 
    %
    %   Properties:
-   %   winSize          - Size of window in pixels
+   %   winSize          - Size of window in pixels, must be
+   %   floor(imSize/cellSize)*cellSize
    %   cellSize         - Size of cells in pixels
    %   blockSize        - Size of block in cells
    %   blockOverlap     - Overlap of blocks in cells
    %
-   %   features = compute(obj, img) computes HOG features on
-   %   input image, img, for the object defined by obj.
+   %   features = compute(obj, img, NSS, Cs) computes HOG and if 
+   %   NSS == 1, also NSS features on input image, img, for the 
+   %   object defined by obj. Cs defines the value by which the 
+   %   NSS are divided.
    %
    %   release(obj) releases object memory.
 
@@ -29,14 +32,15 @@
        methods
            % Constructor
            function obj = HOGNSSFeatures(imSize, varargin)
+               % check number of parameters (cellsize, etc)
                if mod(nargin-1,2) == 1
                    error('Incorrect number of inputs');
                end
-               p = getInputParser(obj);
-               parse(p,varargin{:});
+               p = getInputParser(obj); % create input parser if not available
+               parse(p,varargin{:}); % parse input parameters (cellsize, etc)
                userInput = p.Results;
                params = HOGNSSFeatures.setparams(userInput,imSize);
-               HOGNSSFeaturesOCV('construct', params);
+               HOGNSSFeaturesOCV('construct', params); % call c++ opencv constructor
            end
 
            % Get HOG features vector
@@ -55,8 +59,11 @@
            end
        end
        methods (Access = private)
-           % Input parser
+           % Input parser: Create Input parser if not available for later
+           % parsing and validating input parameters.
            function parser = getInputParser(obj)
+               % p value will be retained in memory between calls to the
+               % function
                persistent p
                if isempty(p)
                    p = inputParser();
@@ -68,9 +75,12 @@
            end
        end
        methods (Static)
-           % Set parameters
+           % Set input parameters: set an object with the parameters after
+           % parsing the user input. The c++ function (HOGNSSFeaturesOCV) 
+           % handles and works with the params object.
            function params = setparams(userInput, sz)
                cell_Size = userInput.CellSize;
+               % convert window size to legal size for opencv
                win_Size = floor([sz(1)./cell_Size(1) sz(2)./cell_Size(2)]);
                win_Size = win_Size.*cell_Size;
                params.CellSize     = int32(userInput.CellSize);
