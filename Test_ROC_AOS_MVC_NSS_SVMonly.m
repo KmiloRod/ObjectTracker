@@ -1,10 +1,11 @@
-function Test_ROC_AOS_MVC_NSS_SVMonly(Distortion,v,NSS,Cs)
+function Test_ROC_AOS_MVC_NSS_SVMonly(Distortion,v,NSS,Cs,Display)
 % Generates success plots from the tracker performance on the video number
 % v affected by three levels of the distortion of image quality specified
 % by the string Distortion ('pristine', 'MPEG4', 'Gaussian', 'S & P' or
 % 'Blur'). NSS = 1 includes NSS features in the SVM training; NSS = 0 uses
 % only HOG features. The parameter Cs is the scaling factor for the NSS
-% features (Cs = 1 denotes no scaling).
+% features (Cs = 1 denotes no scaling). The output success plots are
+% calculated only with the frames were the SVM is used.
 
 
 path(path,'./05_pedestrian3')
@@ -26,11 +27,8 @@ global BlockSize BlockOverlap CellSize Numbins
 tests_array = [1, 3, 1, 2, 2, 3, 5, 3];
 AOS_threshold_array = linspace(0.1,1,19);
 
-%v = 2;  % Number of the video to be evaluated
-
 %Distortion = 'MPEG4';
 test = tests_array(v);
-
 
 tic
 
@@ -68,6 +66,10 @@ end
 
 for o = 1 : length(Q) 
     load(vidName{v},'frames');
+    
+    % Only consider first 100 frames of the video
+    frames = frames(:,:,:,1:100);    
+    
     switch Distortion
         case 'MPEG4'
             [frames] = vidnoise(frames,'MPEG-4',Q(o));
@@ -141,12 +143,21 @@ for o = 1 : length(Q)
     bgPVar_init = patchVariance(I,bgP);    
     wP = slidingWindow(1,1,imSize(2),imSize(1),objbbox(3),objbbox(4),ovrlp);
     objFrames = ones(Nobj,1);
-
-    figure; imshow(uint8(drawPatches(frames(:,:,:,1),objbbox(1,:),1)));
+    
+    if Display
+        figure; imshow(uint8(drawPatches(frames(:,:,:,1),objbbox(1,:),1)));
+    end
     objboxdraw = objbbox(1,:);
 
-    hogS   = hogFeat(I,[objP;bgP]);
-%        hogWS  = hogFeat(I,wP);
+    %hogS   = hogFeat(I,[objP;bgP]);
+    
+    featuresS   = hogNSSFeat(I,[objP;bgP],NSS,Cs);
+    if NSS
+        hogS = featuresS(:,1:end-36);
+        nssS = featuresS(:,end-35:end);
+    else
+        hogS = featuresS;
+    end
 
 %     hog_range(:,1) = [min(min(hogS)); max(max(hogS))];
 %     nss_range(:,1) = [min(min(nssS)); max(max(nssS))];
@@ -163,7 +174,7 @@ for o = 1 : length(Q)
     bgKeys = bgKeys(Idist2);
 
     if NSS
-        nssS   = nssFeat(I,[objP;bgP]) / Cs;            
+        % nssS   = nssFeat(I,[objP;bgP]);
         nssS(1:Nobj,:) = nssS(Idist1,:);
         nssS(Nobj+1:Nobj+Nbg,:) = nssS(Idist2+Nobj,:);
         featuresS = [hogS, nssS];  % Concatenation of NSS features to HOG features
@@ -196,14 +207,7 @@ for o = 1 : length(Q)
             bbox = ones(size(D,1),1)*objbbox(i-1,:) + D; % posible bboxes where the object is located in frame t + 1
             bbox(bbox(:,1)<1 | bbox(:,2)<1 | (bbox(:,1)+bbox(:,3)-1)>width | (bbox(:,2)+bbox(:,4)-1)>Height,:)=[];
 
-            hogS_nxt = hogFeat(I,bbox);
-
-            if NSS
-                nssS_nxt = nssFeat(I,bbox) / Cs;
-                features_nxt = [hogS_nxt, nssS_nxt];
-            else
-                features_nxt = hogS_nxt;
-            end                
+            features_nxt   = hogNSSFeat(I,bbox,NSS,Cs);         
 
             if isempty(find(isnan(gtP(i,:)), 1))
                 gt_center = [gtP(i,1)+round(gtP(i,3)/2), gtP(i,2)+round(gtP(i,4)/2)];
@@ -219,13 +223,14 @@ for o = 1 : length(Q)
 
             objP_nxt = bbox(labels==1,:);
         else
-            hogS_nxt = hogFeat(I,wP);
-            if NSS
-                nssS_nxt = nssFeat(I,wP) / Cs;
-                features_nxt = [hogS_nxt, nssS_nxt];
-            else
-                features_nxt = hogS_nxt;
-            end                                
+%             hogS_nxt = hogNSSFeat(I,wP,0,1);
+            features_nxt = hogNSSFeat(I,wP,NSS,Cs);
+%             if NSS
+%                 nssS_nxt = nssFeat(I,wP) / Cs;
+%                 features_nxt = [hogS_nxt, nssS_nxt];
+%             else
+%                 features_nxt = hogS_nxt;
+%             end                                
             if isempty(find(isnan(gtP(i,:)), 1))  
                 gt_center = [gtP(i,1)+round(gtP(i,3)/2), gtP(i,2)+round(gtP(i,4)/2)];
                 gtP(i,:) = [gt_center(1)-patch_width, gt_center(2)-patch_height, patch_width, patch_height];                    
@@ -303,7 +308,14 @@ for o = 1 : length(Q)
                     objCode = briefDescriptor(I_objP,points);
                     if min(pdist2(objCode,binCode,'hamming')) <= bgTsh4 
                         disp(':|')
-                        hogSobj   = hogFeat(I,objbbox(i,:));
+%                         hogSobj   = hogNSSFeat(I,objbbox(i,:),0,1);
+                        featuresSobj = hogNSSFeat(I,objbbox(i,:),NSS,Cs);
+                        if NSS
+                            hogSobj = featuresSobj(:,1:end-36);
+                            nssSobj= featuresSobj(:,end-35:end);
+                        else
+                            hogSobj = featuresSobj;
+                        end
                         dist1_add = sqrt(sum((hogSobj - hogSobj_avg).^2,2));
                         if Nobj == Nobj_max
                             hogS(Nobj,:) = hogSobj;
@@ -312,7 +324,7 @@ for o = 1 : length(Q)
                             binCode(Nobj,:) = objCode;
                             dist1(Nobj)     = dist1_add;
                             if NSS
-                                nssSobj   = nssFeat(I,objbbox(i,:)) / Cs;
+%                                 nssSobj   = nssFeat(I,objbbox(i,:)) / Cs;
                                 nssS(Nobj,:) = nssSobj;
                             end
                         else
@@ -374,14 +386,17 @@ for o = 1 : length(Q)
             objboxdraw(4) = objboxdraw(4) + objboxdraw(2) - 1;
             objboxdraw(2) = 1;
         end
-
-        title(['Frame ',num2str(i)]);
-        if object_found(i)
-            imshow(uint8(drawPatches(frames(:,:,:,i),objboxdraw,1)));
-        else
-            imshow(uint8(frames(:,:,:,i)));
+        
+        % Display frame and object box
+        if Display
+            title(['Frame ',num2str(i)]);
+            if object_found(i)
+                imshow(uint8(drawPatches(frames(:,:,:,i),objboxdraw,1)));
+            else
+                imshow(uint8(frames(:,:,:,i)));
+            end
         end
-
+        
 %         hog_range(:,i) = [min(min(hogS)); max(max(hogS))];
 %         nss_range(:,i) = [min(min(nssS)); max(max(nssS))];
 
@@ -390,11 +405,15 @@ for o = 1 : length(Q)
     total_object_found(o,:) = object_found;
     flag_lvl(o,:) = flag;
     
-     for thresh = 1:length(AOS_threshold_array)
+    % Estimate AOS score
+    for thresh = 1:length(AOS_threshold_array)
         AOS_thresh = AOS_threshold_array(thresh);
         [AOS(o,thresh), false_p(o,thresh), ROC_accuracy(o,thresh), ~] = AOS_score_SVMonly(objbbox,gtP,AOS_thresh,flag_lvl(o,:));
-     end
-    close
+    end
+     
+    if Display
+        close
+    end
 
     %plot(1:Length,S_local(o,:),1:Length,predict_accuracy(o,:),1:Length,object_found,'bo',1:Length,flag,'*y');
 
@@ -441,8 +460,8 @@ plot_ax.FontSize = 16;
 xlabel('Overlap threshold');
 ylabel('Success rate');
 legend('show','Location','southwest');
-saveas(gcf,strcat('./SVM_new_results/Video_',num2str(v),'_SP_',Distortion,'_onlySVM'),'epsc');
-close;
+%saveas(gcf,strcat('./SVM_new_results/Video_',num2str(v),'_SP_',Distortion,'_onlySVM'),'epsc');
+%close;
 
 if NSS
     if strcmp(Distortion,'S & P')

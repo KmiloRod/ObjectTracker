@@ -144,8 +144,15 @@ for o = 1 : length(Q)
     end
     objboxdraw = objbbox(1,:);
     
-    % Extraction of HOG features from all the patches
-    hogS   = hogFeat(I,[objP;bgP]);
+    % Extraction of HOG and NSS features from all the patches
+%     hogS   = hogFeat(I,[objP;bgP]);
+    featuresS   = hogNSSFeat(I,[objP;bgP],NSS,Cs);
+    if NSS
+        hogS = featuresS(:,1:end-36);
+        nssS = featuresS(:,end-35:end);
+    else
+        hogS = featuresS;
+    end
 
     % Averages of HOG features for object and background patches
     hogSobj_avg = mean(hogS(1:Nobj,:));
@@ -162,9 +169,11 @@ for o = 1 : length(Q)
     hogS(Nobj+1:Nobj+Nbg,:) = hogS(Idist2+Nobj,:);
     bgKeys = bgKeys(Idist2);
 
-    % Adding NSS features
+    % Sort and concatenate NSS features
     if NSS
-        nssS   = nssFeat(I,[objP;bgP]) / Cs;            
+%                         % Prueba funciones antiguas
+%                         nssS   = nssFeat(I,[objP;bgP]) / Cs;
+                    
         nssS(1:Nobj,:) = nssS(Idist1,:);
         nssS(Nobj+1:Nobj+Nbg,:) = nssS(Idist2+Nobj,:);
         featuresS = [hogS, nssS];  % Concatenation of NSS features to HOG features
@@ -202,14 +211,19 @@ for o = 1 : length(Q)
             % Remove boxes outside the frame
             bbox(bbox(:,1)<1 | bbox(:,2)<1 | (bbox(:,1)+bbox(:,3)-1)>width | (bbox(:,2)+bbox(:,4)-1)>Height,:)=[];
 
-            hogS_nxt = hogFeat(I,bbox); % HOG features of the window boxes
-            
-            if NSS                      % NSS features of the window boxes
-                nssS_nxt = nssFeat(I,bbox) / Cs;
-                features_nxt = [hogS_nxt, nssS_nxt];
-            else
-                features_nxt = hogS_nxt;
-            end                
+%             hogS_nxt = hogFeat(I,bbox); % HOG features of the window boxes
+
+            % HOG and NSSfeatures of the window boxes
+            features_nxt   = hogNSSFeat(I,bbox,NSS,Cs);
+                        
+%                         % Prueba funciones antiguas
+%                         hogS_nxt = features_nxt(:,1:end-36);
+%                         if NSS
+%                             nssS_nxt = nssFeat(I,bbox) / Cs;
+%                             features_nxt = [hogS_nxt, nssS_nxt];
+%                         else
+%                             features_nxt = hogS_nxt;
+%                         end      
 
             % If there is ground-truth for the current frame
             if isempty(find(isnan(gtP(i,:)), 1))
@@ -238,13 +252,18 @@ for o = 1 : length(Q)
         % If the object was not detected in the previous frame, search in
         % the whole frame (wP)
         else
-            hogS_nxt = hogFeat(I,wP);
-            if NSS
-                nssS_nxt = nssFeat(I,wP) / Cs;
-                features_nxt = [hogS_nxt, nssS_nxt];
-            else
-                features_nxt = hogS_nxt;
-            end                                
+%             hogS_nxt = hogFeat(I,wP);
+            features_nxt = hogNSSFeat(I,wP,NSS,Cs);            
+
+%             % Prueba funciones antiguas
+%                         hogS_nxt = features_nxt(:,1:end-36);
+%                         if NSS
+%                             nssS_nxt = nssFeat(I,wP) / Cs;
+%                             features_nxt = [hogS_nxt, nssS_nxt];
+%                         else
+%                             features_nxt = hogS_nxt;
+%                         end    
+            
             if isempty(find(isnan(gtP(i,:)), 1))  
                 gt_center = [gtP(i,1)+round(gtP(i,3)/2), gtP(i,2)+round(gtP(i,4)/2)];
                 gtP(i,:) = [gt_center(1)-patch_width, gt_center(2)-patch_height, patch_width, patch_height];                    
@@ -323,7 +342,15 @@ for o = 1 : length(Q)
                     objCode = briefDescriptor(I_objP,points);
                     if min(pdist2(objCode,binCode,'hamming')) <= bgTsh4 
                         disp(':|')
-                        hogSobj   = hogFeat(I,objbbox(i,:));
+%                         hogSobj   = hogFeat(I,objbbox(i,:));
+                        featuresSobj = hogNSSFeat(I,objbbox(i,:),NSS,Cs);
+                        if NSS
+                            hogSobj = featuresSobj(:,1:end-36);
+                            nssSobj= featuresSobj(:,end-35:end);
+                        else
+                            hogSobj = featuresSobj;
+                        end
+                        
                         dist1_add = sqrt(sum((hogSobj - hogSobj_avg).^2,2));
                         if Nobj == Nobj_max
                             hogS(Nobj,:) = hogSobj;
@@ -332,7 +359,8 @@ for o = 1 : length(Q)
                             binCode(Nobj,:) = objCode;
                             dist1(Nobj)     = dist1_add;
                             if NSS
-                                nssSobj   = nssFeat(I,objbbox(i,:)) / Cs;
+%                                             % Prueba funciones antiguas
+%                                             nssSobj   = nssFeat(I,objbbox(i,:)) / Cs;
                                 nssS(Nobj,:) = nssSobj;
                             end
                         else
@@ -342,7 +370,8 @@ for o = 1 : length(Q)
                             binCode   = [binCode;objCode];                            
                             dist1     = [dist1_;dist1_add];
                             if NSS
-                                nssSobj   = nssFeat(I,objbbox(i,:)) / Cs;
+%                                             % Prueba funciones antiguas
+%                                             nssSobj   = nssFeat(I,objbbox(i,:)) / Cs;
                                 nssS    = [nssS(1:Nobj,:);nssSobj;nssS(Nobj+1:Nobj+Nbg,:)]; 
                             end
                             Nobj      = Nobj + 1;

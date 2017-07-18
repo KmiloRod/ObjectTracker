@@ -39,8 +39,8 @@ void Image::CreateMscnMaps()
 		cv::sqrt(sigma, sigma);
                          
 		if(verbose) printf("Adding epsilon\n");
-		//add(sigma, Scalar(1.0/255), sigma);
-		add(sigma, Scalar(1.0), sigma);
+		add(sigma, Scalar(1.0/255), sigma);
+		//add(sigma, Scalar(1.0), sigma);
 		subtract(imdist_scaled, mu, mscn[itr_scale-1]);
                                     
 		divide(mscn[itr_scale-1], sigma, mscn[itr_scale-1]);
