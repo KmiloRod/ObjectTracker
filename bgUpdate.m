@@ -35,7 +35,8 @@ switch method
             end
             bgKeys_curr(ibgP_nxt) = bgPVar_nxt;
             bgP_nxt = bgP_curr(ibgP_nxt,:);
-            hogSbg_nxt = hogFeat(I,bgP_nxt);
+%             hogSbg_nxt = hogFeat(I,bgP_nxt);
+            hogSbg_nxt = hogNSSFeat(I,bgP_nxt,0,1); % HOG features from patches to update            
             hogFeatSet_curr(Nobj+ibgP_nxt,:) = 0.35*hogSbg_nxt + 0.65*hogFeatSet_curr(Nobj+ibgP_nxt,:);
         end
         bgKeys_nxt     = bgKeys_curr;
