@@ -36,13 +36,13 @@ switch method
             bgKeys_curr(ibgP_nxt) = bgPVar_nxt; % keys of patches to update
             bgP_nxt = bgP_curr(ibgP_nxt,:); % patches to update
             % Old functions
-%             hogSbg_nxt = hogNSSFeat(I,bgP_nxt,0,Cs); % HOG features from patches to update
-%             NSSbg_nxt = nssFeat(I,bgP_nxt) / Cs; % NSS features from patches to update
+            hogSbg_nxt = hogNSSFeat(I,bgP_nxt,0,Cs); % HOG features from patches to update
+            NSSbg_nxt = nssFeat(I,bgP_nxt) / Cs; % NSS features from patches to update
 
             % New functions (OpenCV)
-            featuresSbg_nxt = hogNSSFeat(I,bgP_nxt,1,Cs);
-            hogSbg_nxt = featuresSbg_nxt(:,1:end-36); % HOG features from patches to update
-            NSSbg_nxt = featuresSbg_nxt(:,end-35:end); % NSS features from patches to update
+%             featuresSbg_nxt = hogNSSFeat(I,bgP_nxt,1,Cs);
+%             hogSbg_nxt = featuresSbg_nxt(:,1:end-36); % HOG features from patches to update
+%             NSSbg_nxt = featuresSbg_nxt(:,end-35:end); % NSS features from patches to update
 
             hogFeatSet_curr(Nobj+ibgP_nxt,:) = 0.35*hogSbg_nxt + 0.65*hogFeatSet_curr(Nobj+ibgP_nxt,:); % Calculate the new values for HOG features of updated patches and add them to the current bg matrix
             NSSSet_curr(Nobj+ibgP_nxt,:) = NSSbg_nxt; % Add the updated NSS features from updated patches to the bg matrix

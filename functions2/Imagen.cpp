@@ -13,7 +13,7 @@ bool isfinite(float x){
 void Image::CreateMscnMaps()
 {
 	Mat orig_bw;
-	img.convertTo(orig_bw, CV_32F);
+	img.convertTo(orig_bw, CV_32F); // must be CV_32F or CV_64F for functions below
 	//cvtColor(orig_bw, orig_bw, CV_BGR2GRAY);
         
 	for (int itr_scale = 1; itr_scale<=2; itr_scale++)
@@ -135,14 +135,14 @@ bool Image::FastBrisque(int x, int y, int w, int h, vector<float>& descriptorVec
         if(verbose) 
             printf("countneg %f \n", countneg);
         
-		if(!countpos||!countneg)
-		{
-			//printf("invalid image patch in count %d\n",count);
-			valid = 0;
-			return valid;
-		}
-		else
-			valid = 1;
+// 		if(!countpos||!countneg)
+// 		{
+// 			printf("invalid image patch in count %d\n",count);
+// 			valid = 0;
+// 			return valid;
+// 		}
+// 		else
+// 			valid = 1;
 
 
         lsqsum = windowsum(leftsqsum[count], x+1, y+1, w, h);
@@ -183,23 +183,21 @@ bool Image::FastBrisque(int x, int y, int w, int h, vector<float>& descriptorVec
         }
 		if(verbose)
 			printf("gamma %f\n", prevgamma);
+        
+        if(isnan(prevgamma)||!isfinite(prevgamma))
+        {
+            prevgamma = 0;
+        }        
 		descriptorVector.push_back(prevgamma);
-		lastElem=descriptorVector.back();
-
-		if(isnan(lastElem)||!isfinite(lastElem))
+        
+        
+        lastElem = 0.5*(rightstdsq+leftstdsq);
+        if(isnan(lastElem)||!isfinite(lastElem))
 		{
-
-			valid=0;
-			return valid;
+			lastElem = 0;
 		}
-
-		descriptorVector.push_back(0.5*(rightstdsq+leftstdsq));
-		lastElem=descriptorVector.back();
-		if(isnan(lastElem)||!isfinite(lastElem))
-		{
-			valid=0;
-			return valid;
-		}
+        descriptorVector.push_back(lastElem);
+        
 
         for(int itr_shift=1; itr_shift<=4; itr_shift++)
         {
@@ -207,14 +205,14 @@ bool Image::FastBrisque(int x, int y, int w, int h, vector<float>& descriptorVec
             count++;
             countpos = windowsum(numpos[count], x+1, y+1, w, h);
             countneg = windowsum(numneg[count], x+1, y+1, w, h); 
-    		if(!countpos||!countneg)
-    		{
-    			//printf("invalid image patch in count %d\n",count);
-    			valid = 0;
-    			return valid;
-    		}
-    		else
-    			valid = 1;
+//     		if(!countpos||!countneg)
+//     		{
+//     			printf("invalid image patch in count %d\n",count);
+//     			valid = 0;
+//     			return valid;
+//     		}
+//     		else
+//     			valid = 1;
 
             if(verbose) printf("countpos %f \n", countpos);
             if(verbose) printf("countneg %f \n", countneg);
@@ -253,37 +251,32 @@ bool Image::FastBrisque(int x, int y, int w, int h, vector<float>& descriptorVec
                 prevterm2 = term2;
                 prevterm3 = term3;
             }
-            if(verbose) printf("gamma %f\n", prevgamma);
+            if(verbose) printf("gamma %f\n", prevgamma);            
+            if(isnan(prevgamma)||!isfinite(prevgamma))
+            {
+                prevgamma = 0;
+            }
             descriptorVector.push_back(prevgamma);
-		    lastElem=descriptorVector.back();
 
-		    if(isnan(lastElem)||!isfinite(lastElem))
+            
+            lastElem = (rightstd-leftstd)*prevterm2/prevterm1*sqrt(prevterm1/prevterm3);
+            if(isnan(lastElem)||!isfinite(lastElem))
 			{
-				valid=0;
-				return valid;
+                lastElem = 0;
 			}
-            descriptorVector.push_back((rightstd-leftstd)*prevterm2/prevterm1*sqrt(prevterm1/prevterm3));
-            lastElem=descriptorVector.back();
-			if(isnan(lastElem)||!isfinite(lastElem))
-			{
-				valid=0;
-				return valid;
-			}
+            descriptorVector.push_back(lastElem);
+            
+            if(isnan(leftstdsq)||!isfinite(leftstdsq))
+            {
+                leftstdsq = 0;
+            }
             descriptorVector.push_back(leftstdsq);
-            lastElem=descriptorVector.back();
-
-			if(isnan(lastElem)||!isfinite(lastElem))
-			{
-				valid=0;
-				return valid;
-			}
+            
+            if(isnan(rightstdsq)||!isfinite(rightstdsq))
+            {
+                rightstdsq = 0;
+            }
             descriptorVector.push_back(rightstdsq);
-            lastElem=descriptorVector.back();
-			if(isnan(lastElem)||!isfinite(lastElem))
-			{
-				valid=0;
-				return valid;
-			}
         }
         area = area/4; x/=2; y/=2; w/=2; h/=2;                
     }
@@ -398,4 +391,3 @@ double Image::gamma(double x){
     }*/
     return ga;
 }
-

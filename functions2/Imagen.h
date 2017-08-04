@@ -15,7 +15,7 @@ using namespace std;
 #define M_PI           3.14159265358979323846
 #define ELEM(type,start,step,size,xpos,ypos) (*((type*)(start+step*(ypos)+(xpos)*size)))
 
-const bool verbose = 1;
+const bool verbose = 0;
 //const int FACEWIDTH = 10;
 //const int FACEHEIGHT = 10;
 
