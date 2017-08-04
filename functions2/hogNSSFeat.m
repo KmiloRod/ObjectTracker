@@ -1,4 +1,4 @@
-function [featMat] = hogFeat(I,P)
+function [featMat] = hogNSSFeat(I,P,NSS,Cs)
 
 % hogFeat receives an gray-scale image I and a N-by-4 matrix of
 % patches P where N is the number of patches; a patch (or row) of P is a
@@ -22,7 +22,7 @@ ymin = P(1,2); ymax = ymin + P(1,4)-1;
 % construct feature obj
 featObj = HOGNSSFeatures(size(I(ymin:ymax,xmin:xmax,:)),'CellSize',CellSize,'BlockSize',BlockSize,'BlockOverlap',BlockOverlap);
  
-featFst = compute(featObj,I(ymin:ymax,xmin:xmax,:),1);
+featFst = compute(featObj,I(ymin:ymax,xmin:xmax,:),NSS,Cs);
 featMat = zeros(nPatch,length(featFst));
 featMat(1,:) = featFst;
 
@@ -30,7 +30,7 @@ for i = 2 : nPatch
     xmin = P(i,1); xmax = xmin + P(i,3)-1;
     ymin = P(i,2); ymax = ymin + P(i,4)-1;
     
-    featMat(i,:) = compute(featObj,I(ymin:ymax,xmin:xmax,:),1);
+    featMat(i,:) = compute(featObj,I(ymin:ymax,xmin:xmax,:),NSS,Cs);
 
 end
 
