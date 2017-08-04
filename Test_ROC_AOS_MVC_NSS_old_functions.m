@@ -1,4 +1,4 @@
-function Test_ROC_AOS_MVC_NSS(Distortion,v,NSS,Cs,Display)
+function Test_ROC_AOS_MVC_NSS_old_functions(Distortion,v,NSS,Cs,Display)
 % Generates success plots from the tracker performance on the video number
 % v affected by three levels of the distortion of image quality specified
 % by the string Distortion ('pristine', 'MPEG4', 'Gaussian', 'S & P' or
@@ -56,9 +56,9 @@ ovrlp = 1/4; %[1/2 1/3 1/4 1/5];
 % Load pristine results for comparison with distortions
 if ~strcmp(Distortion,'pristine')
     if NSS
-        load(strcat('AOS_NSS_Video_',num2str(v),'_pristine_Cs',num2str(Cs)));
+        load(strcat('Prueba_AOS_NSS_Video_',num2str(v),'_pristine_Cs',num2str(Cs)));
     else
-        load(strcat('AOS_HOG_Video_',num2str(v),'_pristine_Cs',num2str(Cs)));
+        load(strcat('Prueba_AOS_HOG_Video_',num2str(v),'_pristine_Cs',num2str(Cs)));
     end
     % AOS_pristine = AOS;
     ROC_accuracy_pristine = ROC_accuracy;
@@ -70,7 +70,7 @@ for o = 1 : length(Q)
     load(vidName{v},'frames');
             
     % Only consider first 100 frames of the video
-    % frames = frames(:,:,:,1:100);
+    frames = frames(:,:,:,1:100);
     
     % Generate distorted version of the video
     switch Distortion
@@ -146,13 +146,7 @@ for o = 1 : length(Q)
     
     % Extraction of HOG and NSS features from all the patches
 %     hogS   = hogFeat(I,[objP;bgP]);
-    featuresS   = hogNSSFeat(I,[objP;bgP],NSS,Cs);
-    if NSS
-        hogS = featuresS(:,1:end-36);
-        nssS = featuresS(:,end-35:end);
-    else
-        hogS = featuresS;
-    end
+    hogS   = hogNSSFeat(I,[objP;bgP],0,Cs);
 
     % Averages of HOG features for object and background patches
     hogSobj_avg = mean(hogS(1:Nobj,:));
@@ -171,6 +165,7 @@ for o = 1 : length(Q)
 
     % Sort and concatenate NSS features
     if NSS                    
+        nssS   = nssFeat(I,[objP;bgP]) / Cs;
         nssS(1:Nobj,:) = nssS(Idist1,:);
         nssS(Nobj+1:Nobj+Nbg,:) = nssS(Idist2+Nobj,:);
         featuresS = [hogS, nssS];  % Concatenation of NSS features to HOG features
@@ -211,7 +206,14 @@ for o = 1 : length(Q)
 %             hogS_nxt = hogFeat(I,bbox); % HOG features of the window boxes
 
             % HOG and NSSfeatures of the window boxes
-            features_nxt   = hogNSSFeat(I,bbox,NSS,Cs);
+            hogS_nxt = hogNSSFeat(I,bbox,0,Cs);
+            if NSS
+                nssS_nxt = nssFeat(I,bbox) / Cs;
+                features_nxt = [hogS_nxt, nssS_nxt];
+            else
+                features_nxt = hogS_nxt;
+            end      
+            
             
             % If there is ground-truth for the current frame
             if isempty(find(isnan(gtP(i,:)), 1))
@@ -241,7 +243,13 @@ for o = 1 : length(Q)
         % the whole frame (wP)
         else
 %             hogS_nxt = hogFeat(I,wP);
-            features_nxt = hogNSSFeat(I,wP,NSS,Cs);            
+            hogS_nxt = hogNSSFeat(I,wP,0,Cs);
+            if NSS
+                nssS_nxt = nssFeat(I,wP) / Cs;
+                features_nxt = [hogS_nxt, nssS_nxt];
+            else
+                features_nxt = hogS_nxt;
+            end    
             
             if isempty(find(isnan(gtP(i,:)), 1))  
                 gt_center = [gtP(i,1)+round(gtP(i,3)/2), gtP(i,2)+round(gtP(i,4)/2)];
@@ -312,7 +320,7 @@ for o = 1 : length(Q)
             if flag(i) == 0
 
                     if NSS
-                        [hogS,~,nssS] = bgUpdateNSS(I,'mvc',0.05,objbbox(i,:),bgP,bgKeys,hogS,nssS,Cs);
+                        [hogS,~,nssS] = bgUpdateNSS_oldfunctions(I,'mvc',0.05,objbbox(i,:),bgP,bgKeys,hogS,nssS,Cs);
                     else
                         [hogS] = bgUpdate(I,'mvc',0.05,objbbox(i,:),bgP,bgKeys,hogS);
                     end
@@ -322,13 +330,7 @@ for o = 1 : length(Q)
                     if min(pdist2(objCode,binCode,'hamming')) <= bgTsh4 
                         disp(':|')
 %                         hogSobj   = hogFeat(I,objbbox(i,:));
-                        featuresSobj = hogNSSFeat(I,objbbox(i,:),NSS,Cs);
-                        if NSS
-                            hogSobj = featuresSobj(:,1:end-36);
-                            nssSobj= featuresSobj(:,end-35:end);
-                        else
-                            hogSobj = featuresSobj;
-                        end
+                        hogSobj   = hogNSSFeat(I,objbbox(i,:),0,Cs);
                         
                         dist1_add = sqrt(sum((hogSobj - hogSobj_avg).^2,2));
                         if Nobj == Nobj_max
@@ -338,6 +340,7 @@ for o = 1 : length(Q)
                             binCode(Nobj,:) = objCode;
                             dist1(Nobj)     = dist1_add;
                             if NSS
+                                nssSobj   = nssFeat(I,objbbox(i,:)) / Cs;                                
                                 nssS(Nobj,:) = nssSobj;
                             end
                         else
@@ -347,6 +350,7 @@ for o = 1 : length(Q)
                             binCode   = [binCode;objCode];                            
                             dist1     = [dist1_;dist1_add];
                             if NSS
+                                nssSobj   = nssFeat(I,objbbox(i,:)) / Cs;                                
                                 nssS    = [nssS(1:Nobj,:);nssSobj;nssS(Nobj+1:Nobj+Nbg,:)]; 
                             end
                             Nobj      = Nobj + 1;
@@ -449,8 +453,8 @@ plot_ax.FontSize = 16;
 xlabel('Overlap threshold');
 ylabel('Success rate');
 legend('show','Location','southwest');
-saveas(gcf,strcat('./SVM_new_results/Video_',num2str(v),'_SP_',Distortion,'_Cs',num2str(Cs)),'epsc');
-close;
+%saveas(gcf,strcat('./SVM_new_results/Video_',num2str(v),'_SP_',Distortion),'epsc');
+%close;
 
 % Save tests results
 if NSS
