@@ -1,5 +1,5 @@
 % Generates averaged success plots of all test videos combined for a given
-% distortion
+% distortion, with the three severity levels in the same plot
 
 videos = [1, 2, 4, 5, 6, 7, 8];
 File_name_begin = 'AOS_Video_';
@@ -9,7 +9,7 @@ ROC_accuracy_all_pristine = zeros(size(videos,2),size(AOS_threshold_array,2));
 color_array = 'brgmck';
 marker_array = 'x*^sd';
 
-Distortion = 'pristine';
+Distortion = 'MPEG4';
 
 for i = 1:size(videos,2)
     load(strcat(File_name_begin,num2str(videos(i)),'_pristine'),'ROC_accuracy');
