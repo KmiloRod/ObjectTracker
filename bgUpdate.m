@@ -1,9 +1,16 @@
 function [hogFeatSet_nxt,bgKeys_nxt] = bgUpdate(I,method,perUpd,objbbox_curr,bgP_curr,bgKeys_curr,hogFeatSet_curr)
 
 % I: current frame
+% method: 'mvc' or 'msp' that stand for maximum variance change and 
+% minimum spatial proximity, respectively.
+% perUpd: fraction bw 0 and 1 that represents the percentage of background
+% patches to be updated.
 % objbbox_curr: object bounding box at current frame I
 % bgP_curr: background Patches
-% objHOGfeat_curr: HOG features of the bg patches
+% bgKeys_curr: spatial patch identification. See bgPatchGen function for
+% further info.
+% hogFeatSet_curr: matrix containing both hog feature vectors of both the
+% object and background patches at the current frame
 
 imSize = size(I); 
 Nbg  = size(bgP_curr,1);
@@ -20,7 +27,7 @@ switch method
         hogFeatSet_curr(Nobj+idx_bgKeys,:) = 0.35*hogSbg_nxt + 0.65*hogFeatSet_curr(Nobj+idx_bgKeys,:);
         hogFeatSet_nxt = hogFeatSet_curr;
         
-    case 'mvc' % maximum variace change
+    case 'mvc' % maximum variance change
         ibgP       = 1 : Nbg;
         bgPVar_nxt = patchVariance(I,bgP_curr);
         bgPoverlap = bboxOverlapRatio(bgP_curr,objbbox_curr);
@@ -36,8 +43,10 @@ switch method
             bgKeys_curr(ibgP_nxt) = bgPVar_nxt;
             bgP_nxt = bgP_curr(ibgP_nxt,:);
 %             hogSbg_nxt = hogFeat(I,bgP_nxt);
-            hogSbg_nxt = hogNSSFeat(I,bgP_nxt,0,1); % HOG features from patches to update            
-            hogFeatSet_curr(Nobj+ibgP_nxt,:) = 0.35*hogSbg_nxt + 0.65*hogFeatSet_curr(Nobj+ibgP_nxt,:);
+            hogSbg_nxt = hogNSSFeat(I,bgP_nxt,0,1); % HOG features from patches to update
+            alpha1 = 0.35;
+            alpha2 = 0.65;
+            hogFeatSet_curr(Nobj+ibgP_nxt,:) = alpha1*hogSbg_nxt + alpha2*hogFeatSet_curr(Nobj+ibgP_nxt,:);
         end
         bgKeys_nxt     = bgKeys_curr;
         hogFeatSet_nxt = hogFeatSet_curr;
