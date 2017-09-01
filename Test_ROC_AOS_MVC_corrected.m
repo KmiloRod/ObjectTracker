@@ -60,7 +60,7 @@ imSize = [Height,width];
 
 ovrlp = 1/4; %[1/2 1/3 1/4 1/5];
 predict_accuracy = zeros(length(Q),numOfFrames);
-
+total_object_found = zeros(length(Q),numOfFrames);
 
 % Load pristine results for comparison with distortions
 if ~strcmp(Distortion,'pristine')
@@ -134,7 +134,7 @@ for o = 1 : length(Q)
     % Initial sliding window patches
     wP = slidingWindow(1,1,imSize(2),imSize(1),objbbox(3),objbbox(4),ovrlp);
     objFrames = ones(Nobj,1);
-    object_found = zeros(numOfFrames);
+    object_found = zeros(1,numOfFrames);
     
     % Display the video frames during processing
     if Display
