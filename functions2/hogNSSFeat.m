@@ -29,7 +29,7 @@ patchSize = [P(1,3) P(1,4)];
 hogParams = parseInputs(patchSize, 'CellSize',CellSize,...
                         'BlockSize',BlockSize,'BlockOverlap',BlockOverlap);
 
-[featMat, featLength] = hogNSSFeatOCV(I, P, NSS, Cs, hogParams);
+[featMat, featLength] = hogNSSFeatOCV(I, P, NSS, Cs, hogParams); % use cv.hogNSSFeatOCV(I, P, NSS, Cs, hogParams); when using mexopencv
 featMat = double(reshape(featMat, [featLength nPatch])');
 
 end
