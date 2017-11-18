@@ -11,18 +11,22 @@ function [featMat] = hogNSSFeat(I,P,NSS,Cs)
 %
 % hogFeat returns the N-by-Nfeat matrix consisting of the HOG and NSS
 % representation of each patch in P.
+%
+% This function employs the OpenCV's implementation of HOG features (cv::HOGDescriptor)
+% by using the precompiled hogNSSFeatOCV.cpp mex function.
 
 % HOG descriptor parameters defined as global variables
 global BlockSize BlockOverlap CellSize Numbins 
 % BlockOverlap must be less than the BlockSize
 
+% Convert types for hogNSSFeatOCV.cpp function
 I = uint8(I); 
 P = int32(P);
 NSS = logical(NSS);
 Cs = single(Cs);
 
 % HOG features paramters
-nPatch = size(P,1);
+nPatch = size(P,1); % number of patches
 patchSize = [P(1,3) P(1,4)];
 
 % Parse input parameters
@@ -36,6 +40,7 @@ if exist('~/cv/mexopencv','file')
 else
     [featMat, featLength] = hogNSSFeatOCV(I, P, NSS, Cs, hogParams);
 end
+% hogNSSFeatOCV returns a 1D vector, here we reshape it to a N-by-Nfeat matrix
 featMat = double(reshape(featMat, [featLength nPatch])');
 
 end
