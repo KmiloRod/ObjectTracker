@@ -1,7 +1,7 @@
 % Generates averaged success plots of all test videos combined for a given
 % distortion, with the three severity levels in the same plot, considering
 % NSS results
-%Hola cambio 1
+
 clear;
 Cs = 10;
 videos = [1, 2, 4, 5, 6, 7, 8];
